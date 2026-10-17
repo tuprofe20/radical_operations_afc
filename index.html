@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TuProfe20 Lab - Ejercicios con Radicales</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- KaTeX para rendering matemático exacto, nítido y en LaTeX puro -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+        
+        body { margin: 0; padding: 0; overflow: hidden; width: 100vw; height: 100dvh; user-select: none; }
+        .font-fun { font-family: 'Nunito', sans-serif; }
+        
+        @keyframes floatUp { 
+            0% { transform: translateY(105vh) rotate(0deg); } 
+            100% { transform: translateY(-105vh) rotate(360deg); } 
+        }
+        @keyframes slideInRight { 
+            0% { opacity: 0; transform: translateX(15px); } 
+            100% { opacity: 1; transform: translateX(0); } 
+        }
+        @keyframes confettiExplosion { 
+            0% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; } 
+            80% { opacity: 1; } 
+            100% { transform: translate(var(--tx), var(--ty)) scale(0) rotate(var(--rot)); opacity: 0; } 
+        }
+        @keyframes starRadialExplosion {
+            0% { transform: translate(0, 0) scale(0) rotate(0deg); opacity: 1; filter: brightness(1) drop-shadow(0 0 5px rgba(251,191,36,0.8)); }
+            20% { transform: translate(calc(var(--tx) * 0.2), calc(var(--ty) * 0.2)) scale(var(--s)) rotate(calc(var(--rot) * 0.2)); opacity: 1; filter: brightness(1.5) drop-shadow(0 0 15px rgba(251,191,36,1)); }
+            100% { transform: translate(var(--tx), var(--ty)) scale(0) rotate(var(--rot)); opacity: 0; filter: brightness(1) drop-shadow(0 0 0 rgba(251,191,36,0)); }
+        }
+        @keyframes jellyPop {
+            0% { transform: scale3d(.3, .3, .3); opacity: 0; }
+            20% { transform: scale3d(1.18, 1.18, 1.18); }
+            40% { transform: scale3d(.92, .92, .92); }
+            60% { transform: scale3d(1.06, 1.06, 1.06); opacity: 1; }
+            80% { transform: scale3d(.97, .97, .97); }
+            100% { transform: scale3d(1, 1, 1); opacity: 1; }
+        }
+        @keyframes robotFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+        @keyframes robotThinkTilt { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(6deg) translateY(-3px); } }
+        @keyframes robotJump { 0%, 100% { transform: translateY(0); } 30% { transform: translateY(-15px); } }
+        @keyframes robotTalkArmL { 0%, 100% { transform: rotate(45deg); } 50% { transform: rotate(95deg); } }
+        @keyframes robotTalkArmR { 0%, 100% { transform: rotate(-45deg); } 50% { transform: rotate(-95deg); } }
+
+        /* Clases para ocultar el scrollbar pero permitir scroll libre en la cuadrícula */
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .animate-floatUp { animation: floatUp linear infinite; }
+        .animate-slideInRight { animation: slideInRight 0.3s ease-out forwards; }
+        .animate-confettiExplosion { animation: confettiExplosion 1.8s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
+        .animate-starRadialExplosion { animation: starRadialExplosion 1.5s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
+        .animate-jellyPop { animation: jellyPop 0.55s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        .animate-robotFloat { animation: robotFloat 3s ease-in-out infinite; }
+        .animate-robotThinkTilt { animation: robotThinkTilt 2s ease-in-out infinite; }
+        .animate-robotJump { animation: robotJump 1s cubic-bezier(0.28, 0.84, 0.42, 1) infinite; }
+        .animate-robotTalkArmL { animation: robotTalkArmL 0.6s ease-in-out infinite; }
+        .animate-robotTalkArmR { animation: robotTalkArmR 0.6s ease-in-out infinite 0.1s; }
+
+        /* KaTeX Adaptable Styles */
+        .katex { font-weight: 900 !important; }
+        .katex-display { margin: 0 !important; padding: 0 !important; }
+        
+        /* Auto-scaling Math Classes for 100% fit without scrollbars */
+        .math-card .katex { font-size: clamp(0.85rem, 1.6vw, 1.15rem) !important; color: #1e293b !important; }
+        .math-enunciado .katex { font-size: clamp(1rem, 2.2vw, 1.5rem) !important; color: #ffffff !important; }
+        .math-current .katex { font-size: clamp(1.3rem, 3.5vw, 2.4rem) !important; color: #0f172a !important; }
+        .math-final .katex { font-size: clamp(1.5rem, 4vw, 2.8rem) !important; color: #0f172a !important; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, memo } = React;
+
+        const Icon = ({ paths, className = "", size = 24, fill = "none", strokeWidth = "2.5" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} dangerouslySetInnerHTML={{__html: paths}} />
+        );
+
+        const Zap = (p) => <Icon {...p} paths='<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>' />;
+        const VolumeX = (p) => <Icon {...p} paths='<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>' />;
+        const Volume2 = (p) => <Icon {...p} paths='<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>' />;
+        const Rocket = (p) => <Icon {...p} paths='<path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>' />;
+        const Sparkles = (p) => <Icon {...p} paths='<path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M3 5h4"/><path d="M19 3v4"/><path d="M17 5h4"/>' />;
+        const Home = (p) => <Icon {...p} paths='<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>' />;
+        const ChevronLeft = (p) => <Icon {...p} paths='<polyline points="15 18 9 12 15 6"/>' />;
+        const ChevronRight = (p) => <Icon {...p} paths='<polyline points="9 18 15 12 9 6"/>' />;
+
+        const AudioController = {
+            ctx: null, muted: false,
+            init: function() {
+                if (this.ctx) return;
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) this.ctx = new AudioContext();
+            },
+            play: function(type) {
+                if (this.muted || !this.ctx) return;
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                const now = this.ctx.currentTime;
+                
+                if (type === 'pop') {
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(500, now); osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+                    gain.gain.setValueAtTime(0.25, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now); osc.stop(now + 0.1);
+                } else if (type === 'pop-reverse') {
+                    osc.type = 'triangle'; osc.frequency.setValueAtTime(650, now); osc.frequency.exponentialRampToValueAtTime(280, now + 0.12);
+                    gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                    osc.start(now); osc.stop(now + 0.12);
+                } else if (type === 'success') {
+                    osc.disconnect();
+                    const notes = [523.25, 659.25, 783.99, 1046.50];
+                    notes.forEach((freq, i) => {
+                        const o = this.ctx.createOscillator(); const g = this.ctx.createGain();
+                        o.type = 'triangle'; o.frequency.value = freq;
+                        o.connect(g); g.connect(this.ctx.destination);
+                        const startTime = now + (i * 0.07);
+                        g.gain.setValueAtTime(0, startTime); g.gain.linearRampToValueAtTime(0.2, startTime + 0.04); g.gain.linearRampToValueAtTime(0, startTime + 0.35);
+                        o.start(startTime); o.stop(startTime + 0.35);
+                    });
+                } else if (type === 'swoosh') {
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(280, now); osc.frequency.exponentialRampToValueAtTime(70, now + 0.18);
+                    gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.18);
+                    osc.start(now); osc.stop(now + 0.18);
+                }
+            },
+            toggleMute: function() { this.muted = !this.muted; return this.muted; }
+        };
+
+        const RADICAL_EXERCISES = [
+            {
+                id: 1,
+                title: "Ejercicio 1",
+                subtitle: "Índices 3, 6 y 12",
+                cardGradient: "from-amber-500/30 to-orange-600/30 border-amber-400",
+                badgeColor: "bg-amber-500",
+                enunciadoText: "Simplifique:",
+                enunciadoLatex: String.raw`\frac{\sqrt[3]{a^2 b} \cdot \sqrt[6]{ab^2}}{\sqrt[12]{a^{-2} b^{-4}}}`,
+                steps: [
+                    {
+                        latex: String.raw`\frac{\sqrt[3]{a^2 b} \cdot \sqrt[6]{ab^2}}{\sqrt[12]{a^{-2} b^{-4}}}`,
+                        propertyText: "Expresión inicial con radicales",
+                        propertyLatex: String.raw`\text{Expresión Inicial}`,
+                        robotSpeech: "Tenemos radicales con índices 3, 6 y 12. ¡Presiona Siguiente Paso!"
+                    },
+                    {
+                        latex: String.raw`\frac{a^{\frac{2}{3}}b^{\frac{1}{3}} \cdot a^{\frac{1}{6}}b^{\frac{2}{6}}}{a^{-\frac{2}{12}}b^{-\frac{4}{12}}}`,
+                        propertyText: "Convertir raíz a exponente fraccionario",
+                        propertyLatex: String.raw`\sqrt[n]{x^m} = x^{\frac{m}{n}}`,
+                        robotSpeech: "Aplicamos exponente fraccionario a cada término con radical."
+                    },
+                    {
+                        latex: String.raw`\frac{a^{\frac{4}{6}}b^{\frac{2}{6}} \cdot a^{\frac{1}{6}}b^{\frac{2}{6}}}{a^{-\frac{1}{6}}b^{-\frac{1}{3}}}`,
+                        propertyText: "Homogeneizar denominadores",
+                        propertyLatex: String.raw`\text{Fracciones Equivalentes}`,
+                        robotSpeech: "Homogeneizamos denominadores para facilitar las operaciones."
+                    },
+                    {
+                        latex: String.raw`\frac{a^{\frac{4}{6} + \frac{1}{6}} \cdot b^{\frac{2}{6} + \frac{2}{6}}}{a^{-\frac{1}{6}}b^{-\frac{1}{3}}}`,
+                        propertyText: "Multiplicación de bases iguales (sumar exponentes)",
+                        propertyLatex: String.raw`a^m \cdot a^n = a^{m+n}`,
+                        robotSpeech: "En la multiplicación de bases iguales, sumamos los exponentes del numerador."
+                    },
+                    {
+                        latex: String.raw`\frac{a^{\frac{5}{6}} \cdot b^{\frac{2}{3}}}{a^{-\frac{1}{6}} \cdot b^{-\frac{1}{3}}}`,
+                        propertyText: "Simplificación parcial de exponentes",
+                        propertyLatex: String.raw`\text{Suma y Simplificación}`,
+                        robotSpeech: "Resultan a a la cinco sextos y b a los dos tercios arriba."
+                    },
+                    {
+                        latex: String.raw`a^{\frac{5}{6} - (-\frac{1}{6})} \cdot b^{\frac{2}{3} - (-\frac{1}{3})}`,
+                        propertyText: "División de bases iguales (restar exponentes)",
+                        propertyLatex: String.raw`\frac{a^m}{a^n} = a^{m - n}`,
+                        robotSpeech: "En la división restamos los exponentes: cinco sextos menos menos un sexto."
+                    },
+                    {
+                        latex: String.raw`a^{\frac{6}{6}} \cdot b^{\frac{3}{3}} = \mathbf{ab}`,
+                        propertyText: "Resultado final simplificado",
+                        propertyLatex: String.raw`\text{Resultado Final}`,
+                        robotSpeech: "Operando resulta a a la uno por b a la uno, que es igual a ab. ¡Excelente!"
+                    }
+                ]
+            },
+            {
+                id: 2,
+                title: "Ejercicio 2",
+                subtitle: "Índices Literales ab, bc, ac",
+                cardGradient: "from-emerald-500/30 to-teal-600/30 border-emerald-400",
+                badgeColor: "bg-emerald-500",
+                enunciadoText: "Simplifique M:",
+                enunciadoLatex: String.raw`M = \sqrt[ab]{x^{a-b}} \cdot \sqrt[bc]{x^{b-c}} \cdot \sqrt[ac]{x^{c-a}}`,
+                steps: [
+                    {
+                        latex: String.raw`M = \sqrt[ab]{x^{a-b}} \cdot \sqrt[bc]{x^{b-c}} \cdot \sqrt[ac]{x^{c-a}}`,
+                        propertyText: "Expresión inicial",
+                        propertyLatex: String.raw`\text{Expresión Inicial}`,
+                        robotSpeech: "¡Reto con índices literales! Veamos cómo se simplifican paso a paso."
+                    },
+                    {
+                        latex: String.raw`M = x^{\frac{a-b}{ab}} \cdot x^{\frac{b-c}{bc}} \cdot x^{\frac{c-a}{ac}}`,
+                        propertyText: "Convertir radicales a exponentes fraccionarios",
+                        propertyLatex: String.raw`\sqrt[n]{x^m} = x^{\frac{m}{n}}`,
+                        robotSpeech: "Convertimos cada radical a exponente fraccionario dividiendo exponente entre índice."
+                    },
+                    {
+                        latex: String.raw`M = x^{\frac{a}{ab} - \frac{b}{ab}} \cdot x^{\frac{b}{bc} - \frac{c}{bc}} \cdot x^{\frac{c}{ac} - \frac{a}{ac}}`,
+                        propertyText: "Propiedad distributiva de la división",
+                        propertyLatex: String.raw`\frac{m - n}{d} = \frac{m}{d} - \frac{n}{d}`,
+                        robotSpeech: "Separamos cada fracción del exponente en dos partes."
+                    },
+                    {
+                        latex: String.raw`M = x^{\frac{1}{b}-\frac{1}{a}} \cdot x^{\frac{1}{c}-\frac{1}{b}} \cdot x^{\frac{1}{a}-\frac{1}{c}}`,
+                        propertyText: "Simplificación de letras en fracciones",
+                        propertyLatex: String.raw`\text{Simplificación de Letras}`,
+                        robotSpeech: "Cancelamos letras repetidas: a entre ab queda uno sobre b."
+                    },
+                    {
+                        latex: String.raw`M = x^{\left(\frac{1}{b}-\frac{1}{a}\right) + \left(\frac{1}{c}-\frac{1}{b}\right) + \left(\frac{1}{a}-\frac{1}{c}\right)}`,
+                        propertyText: "Multiplicación de bases iguales",
+                        propertyLatex: String.raw`x^m \cdot x^n = x^{m+n+p}`,
+                        robotSpeech: "Como la base es x, sumamos todos los exponentes en uno solo."
+                    },
+                    {
+                        latex: String.raw`M = x^{0} = \mathbf{1}`,
+                        propertyText: "Todo número elevado a 0 es 1",
+                        propertyLatex: String.raw`x^0 = 1`,
+                        robotSpeech: "¡Todos los términos se cancelan y dan cero! Por tanto, x a la cero es uno."
+                    }
+                ]
+            },
+            {
+                id: 3,
+                title: "Ejercicio 3",
+                subtitle: "Radicales Anidados",
+                cardGradient: "from-pink-500/30 to-rose-600/30 border-pink-400",
+                badgeColor: "bg-pink-500",
+                enunciadoText: "Señale el exponente final de x en:",
+                enunciadoLatex: String.raw`E = \frac{\sqrt[3]{x^2\sqrt{x^3}}}{\sqrt{x^3\sqrt[3]{x^2}}}`,
+                steps: [
+                    {
+                        latex: String.raw`E = \frac{\sqrt[3]{x^2\sqrt{x^3}}}{\sqrt{x^3\sqrt[3]{x^2}}}`,
+                        propertyText: "Expresión inicial anidada",
+                        propertyLatex: String.raw`\text{Expresión Inicial}`,
+                        robotSpeech: "¡Raíces anidadas! Empezamos resolviendo desde adentro hacia afuera."
+                    },
+                    {
+                        latex: String.raw`E = \frac{\sqrt[3]{x^2 \cdot x^{\frac{3}{2}}}}{\sqrt{x^3 \cdot x^{\frac{2}{3}}}}`,
+                        propertyText: "Convertir raíces internas",
+                        propertyLatex: String.raw`\sqrt{x^3} = x^{\frac{3}{2}}`,
+                        robotSpeech: "Convertimos las raíces internas a exponentes fraccionarios."
+                    },
+                    {
+                        latex: String.raw`E = \frac{\sqrt[3]{x^{2 + \frac{3}{2}}}}{\sqrt{x^{3 + \frac{2}{3}}}} = \frac{\sqrt[3]{x^{\frac{7}{2}}}}{\sqrt{x^{\frac{11}{3}}}}`,
+                        propertyText: "Suma de exponentes",
+                        propertyLatex: String.raw`a^m \cdot a^n = a^{m+n}`,
+                        robotSpeech: "Sumamos los exponentes: dos más tres medios es siete medios."
+                    },
+                    {
+                        latex: String.raw`E = \frac{x^{\frac{7}{2 \cdot 3}}}{x^{\frac{11}{3 \cdot 2}}} = \frac{x^{\frac{7}{6}}}{x^{\frac{11}{6}}}`,
+                        propertyText: "Multiplicación de índices de radicales",
+                        propertyLatex: String.raw`\sqrt[n]{\sqrt[m]{a}} = \sqrt[n \cdot m]{a}`,
+                        robotSpeech: "El índice exterior multiplica al denominador: dos por tres y tres por dos."
+                    },
+                    {
+                        latex: String.raw`E = x^{\frac{7}{6} - \frac{11}{6}} = x^{-\frac{4}{6}}`,
+                        propertyText: "División de bases iguales",
+                        propertyLatex: String.raw`\frac{a^m}{a^n} = a^{m - n}`,
+                        robotSpeech: "Restamos los exponentes: siete sextos menos once sextos."
+                    },
+                    {
+                        latex: String.raw`\text{Exponente final} = \mathbf{-\frac{2}{3}}`,
+                        propertyText: "Simplificación de fracción",
+                        propertyLatex: String.raw`\text{Respuesta Encontrada}`,
+                        robotSpeech: "Simplificando la fracción resulta menos dos tercios. ¡Excelente!"
+                    }
+                ]
+            },
+            {
+                id: 4,
+                title: "Ejercicio 4",
+                subtitle: "Potencias de Base 4",
+                cardGradient: "from-purple-500/30 to-violet-600/30 border-purple-400",
+                badgeColor: "bg-purple-500",
+                enunciadoText: "Reduzca:",
+                enunciadoLatex: String.raw`R = \frac{\sqrt[6]{4}\sqrt[4]{4}\sqrt[3]{4}}{4\sqrt[5]{4}\sqrt[20]{4}}`,
+                steps: [
+                    {
+                        latex: String.raw`R = \frac{\sqrt[6]{4}\sqrt[4]{4}\sqrt[3]{4}}{4\sqrt[5]{4}\sqrt[20]{4}}`,
+                        propertyText: "Expresión inicial",
+                        propertyLatex: String.raw`\text{Expresión Inicial}`,
+                        robotSpeech: "¡Todos los factores tienen base 4! Transformemos cada raíz."
+                    },
+                    {
+                        latex: String.raw`R = \frac{4^{\frac{1}{6}} \cdot 4^{\frac{1}{4}} \cdot 4^{\frac{1}{3}}}{4^{1} \cdot 4^{\frac{1}{5}} \cdot 4^{\frac{1}{20}}}`,
+                        propertyText: "Exponente fraccionario",
+                        propertyLatex: String.raw`\sqrt[n]{4} = 4^{\frac{1}{n}}`,
+                        robotSpeech: "Recuerda que el 4 del denominador tiene exponente 1."
+                    },
+                    {
+                        latex: String.raw`R = \frac{4^{\frac{2+3+4}{12}}}{4^{\frac{20+4+1}{20}}} = \frac{4^{\frac{9}{12}}}{4^{\frac{25}{20}}}`,
+                        propertyText: "Mínimo Común Múltiplo (MCM)",
+                        propertyLatex: String.raw`\text{Suma con MCM}`,
+                        robotSpeech: "Operamos con mínimo común múltiplo en numerador y denominador."
+                    },
+                    {
+                        latex: String.raw`R = \frac{4^{\frac{3}{4}}}{4^{\frac{5}{4}}} = 4^{\frac{3}{4} - \frac{5}{4}}`,
+                        propertyText: "Simplificación y división de potencias",
+                        propertyLatex: String.raw`\frac{a^m}{a^n} = a^{m-n}`,
+                        robotSpeech: "Simplificamos las fracciones y restamos exponentes."
+                    },
+                    {
+                        latex: String.raw`R = 4^{-\frac{2}{4}} = 4^{-\frac{1}{2}} = \mathbf{\frac{1}{2}}`,
+                        propertyText: "Exponente negativo y raíz",
+                        propertyLatex: String.raw`a^{-n} = \frac{1}{a^n}`,
+                        robotSpeech: "Aplicando exponente negativo y raíz cuadrada obtenemos un medio."
+                    }
+                ]
+            },
+            {
+                id: 5,
+                title: "Ejercicio 5",
+                subtitle: "Términos Semejantes",
+                cardGradient: "from-cyan-500/30 to-blue-600/30 border-cyan-400",
+                badgeColor: "bg-cyan-500",
+                enunciadoText: "Reduzca:",
+                enunciadoLatex: String.raw`M = \sqrt[5]{\sqrt[3]{\sqrt{5}}} + 5\frac{\sqrt[15]{5^2}}{\sqrt[10]{5}} - 6\sqrt[60]{5}\sqrt[60]{5}`,
+                steps: [
+                    {
+                        latex: String.raw`M = \sqrt[5]{\sqrt[3]{\sqrt{5}}} + 5\frac{\sqrt[15]{5^2}}{\sqrt[10]{5}} - 6\sqrt[60]{5}\sqrt[60]{5}`,
+                        propertyText: "Expresión inicial",
+                        propertyLatex: String.raw`\text{Expresión Inicial}`,
+                        robotSpeech: "¡El gran jefe final! Simplifiquemos cada uno de los tres bloques."
+                    },
+                    {
+                        latex: String.raw`M = \sqrt[5 \cdot 3 \cdot 2]{5} + 5 \cdot \frac{5^{\frac{2}{15}}}{5^{\frac{1}{10}}} - 6 \cdot 5^{\frac{1}{60}} \cdot 5^{\frac{1}{60}}`,
+                        propertyText: "Raíz de raíz y exponente fraccionario",
+                        propertyLatex: String.raw`\sqrt[m]{\sqrt[n]{a}} = \sqrt[m \cdot n]{a}`,
+                        robotSpeech: "Multiplicamos índices: 5 por 3 por 2 es 30 en el primer término."
+                    },
+                    {
+                        latex: String.raw`M = 5^{\frac{1}{30}} + 5 \cdot 5^{\frac{4 - 3}{30}} - 6 \cdot 5^{\frac{1 + 1}{60}}`,
+                        propertyText: "Operaciones en exponentes",
+                        propertyLatex: String.raw`\text{Operaciones en Exponentes}`,
+                        robotSpeech: "Operamos las fracciones en el exponente central y derecho."
+                    },
+                    {
+                        latex: String.raw`M = 1 \cdot 5^{\frac{1}{30}} + 5 \cdot 5^{\frac{1}{30}} - 6 \cdot 5^{\frac{1}{30}}`,
+                        propertyText: "Extracción de factor común",
+                        propertyLatex: String.raw`\text{Términos Semejantes}`,
+                        robotSpeech: "¡Sorpresa! Los tres bloques tienen el factor común 5 a la un treintavo."
+                    },
+                    {
+                        latex: String.raw`M = (1 + 5 - 6) \cdot 5^{\frac{1}{30}} = \mathbf{0}`,
+                        propertyText: "Operación de coeficientes",
+                        propertyLatex: String.raw`\text{Resultado Final}`,
+                        robotSpeech: "Sumamos coeficientes: 1 más 5 menos 6 da 0. ¡El resultado es cero!"
+                    }
+                ]
+            },
+            {
+                id: 6,
+                title: "Ejercicio 6",
+                subtitle: "Radicales anidados de base 2",
+                cardGradient: "from-blue-500/30 to-indigo-600/30 border-blue-400",
+                badgeColor: "bg-blue-500",
+                enunciadoText: "Resuelva:",
+                enunciadoLatex: String.raw`M = \frac{\sqrt{2\sqrt{4\sqrt{8\sqrt{16}}}}}{(\sqrt[4]{\sqrt{2^2\sqrt{2}}})^2}`,
+                steps: [
+                    {
+                        latex: String.raw`M = \frac{\sqrt{2\sqrt{4\sqrt{8\sqrt{16}}}}}{(\sqrt[4]{\sqrt{2^2\sqrt{2}}})^2}`,
+                        propertyText: "Expresión inicial",
+                        propertyLatex: String.raw`\text{Expresión Inicial}`,
+                        robotSpeech: "Empezamos transformando todos los números a base 2 y operando desde adentro."
+                    },
+                    {
+                        latex: String.raw`M = \frac{\sqrt{2\sqrt{2^2\sqrt{2^3 \cdot 2^2}}}}{\sqrt{\sqrt{2^{5/2}}}}`,
+                        propertyText: "Bases iguales y simplificación",
+                        propertyLatex: String.raw`(\sqrt[4]{A})^2 = \sqrt{A}`,
+                        robotSpeech: "Convertimos 4, 8 y 16 a base 2. Abajo, simplificamos el exponente 2 con la raíz cuarta."
+                    },
+                    {
+                        latex: String.raw`M = \frac{\sqrt{2\sqrt{2^2 \cdot 2^{5/2}}}}{\sqrt[4]{2^{5/2}}}`,
+                        propertyText: "Suma de exponentes y raíz de raíz",
+                        propertyLatex: String.raw`a^m \cdot a^n = a^{m+n}`,
+                        robotSpeech: "Multiplicamos bases sumando exponentes. Abajo, raíz cuadrada de raíz cuadrada es raíz cuarta."
+                    },
+                    {
+                        latex: String.raw`M = \frac{\sqrt{2\sqrt{2^{9/2}}}}{2^{5/8}}`,
+                        propertyText: "Reducción de radicales interiores",
+                        propertyLatex: String.raw`\sqrt[n]{x^m} = x^{m/n}`,
+                        robotSpeech: "Sumamos los exponentes dentro del numerador y pasamos el denominador a exponente fraccionario."
+                    },
+                    {
+                        latex: String.raw`M = \frac{\sqrt{2 \cdot 2^{9/4}}}{2^{5/8}}`,
+                        propertyText: "Raíz a exponente fraccionario",
+                        propertyLatex: String.raw`\sqrt{x^{9/2}} = x^{9/4}`,
+                        robotSpeech: "Aplicamos la raíz cuadrada al término interior dividiendo su exponente entre 2."
+                    },
+                    {
+                        latex: String.raw`M = \frac{\sqrt{2^{13/4}}}{2^{5/8}} = \frac{2^{13/8}}{2^{5/8}}`,
+                        propertyText: "Última raíz del numerador",
+                        propertyLatex: String.raw`\text{Multiplicación y Raíz}`,
+                        robotSpeech: "Sumamos exponentes y sacamos la última raíz cuadrada."
+                    },
+                    {
+                        latex: String.raw`M = 2^{\frac{13}{8} - \frac{5}{8}} = 2^{8/8} = \mathbf{2}`,
+                        propertyText: "División de bases iguales",
+                        propertyLatex: String.raw`\frac{a^m}{a^n} = a^{m-n}`,
+                        robotSpeech: "Al dividir bases iguales, restamos los exponentes. ¡El resultado es 2!"
+                    }
+                ]
+            },
+            {
+                id: 7,
+                title: "Ejercicio 7",
+                subtitle: "Efecto dominó de radicales",
+                cardGradient: "from-yellow-500/30 to-amber-600/30 border-yellow-400",
+                badgeColor: "bg-yellow-500",
+                enunciadoText: "Resuelva, para x > 0:",
+                enunciadoLatex: String.raw`L = \sqrt[9]{x^8\sqrt[7]{x^6\sqrt[5]{x^4\sqrt[3]{x^3}}}}`,
+                steps: [
+                    {
+                        latex: String.raw`L = \sqrt[9]{x^8\sqrt[7]{x^6\sqrt[5]{x^4\sqrt[3]{x^3}}}}`,
+                        propertyText: "Expresión inicial en cadena",
+                        propertyLatex: String.raw`\text{Expresión Inicial}`,
+                        robotSpeech: "Este es un efecto dominó. Resolveremos desde el radical más interno hacia afuera."
+                    },
+                    {
+                        latex: String.raw`L = \sqrt[9]{x^8\sqrt[7]{x^6\sqrt[5]{x^4 \cdot x}}}`,
+                        propertyText: "Raíz exacta interna",
+                        propertyLatex: String.raw`\sqrt[3]{x^3} = x`,
+                        robotSpeech: "La raíz cúbica de x al cubo es simplemente x. Ahora multiplicamos por el x a la cuarta."
+                    },
+                    {
+                        latex: String.raw`L = \sqrt[9]{x^8\sqrt[7]{x^6\sqrt[5]{x^5}}}`,
+                        propertyText: "Suma de exponentes",
+                        propertyLatex: String.raw`x^4 \cdot x^1 = x^5`,
+                        robotSpeech: "Sumamos los exponentes y obtenemos x a la quinta dentro de la raíz quinta."
+                    },
+                    {
+                        latex: String.raw`L = \sqrt[9]{x^8\sqrt[7]{x^6 \cdot x}}`,
+                        propertyText: "Simplificación sucesiva",
+                        propertyLatex: String.raw`\sqrt[5]{x^5} = x`,
+                        robotSpeech: "La raíz quinta de x a la quinta es x. ¡El dominó continúa!"
+                    },
+                    {
+                        latex: String.raw`L = \sqrt[9]{x^8\sqrt[7]{x^7}}`,
+                        propertyText: "Multiplicación interna",
+                        propertyLatex: String.raw`x^6 \cdot x^1 = x^7`,
+                        robotSpeech: "Nuevamente, sumamos exponentes y obtenemos x a la séptima."
+                    },
+                    {
+                        latex: String.raw`L = \sqrt[9]{x^8 \cdot x} = \sqrt[9]{x^9}`,
+                        propertyText: "Penúltimo paso",
+                        propertyLatex: String.raw`\sqrt[7]{x^7} = x`,
+                        robotSpeech: "La raíz séptima se anula y multiplicamos por el último término x a la octava."
+                    },
+                    {
+                        latex: String.raw`L = \mathbf{x}`,
+                        propertyText: "Resultado final",
+                        propertyLatex: String.raw`\sqrt[9]{x^9} = x`,
+                        robotSpeech: "Finalmente, la raíz novena de x a la novena es x. ¡Genial!"
+                    }
+                ]
+            },
+            {
+                id: 8,
+                title: "Ejercicio 8",
+                subtitle: "Reducción de radicales",
+                cardGradient: "from-fuchsia-500/30 to-purple-600/30 border-fuchsia-400",
+                badgeColor: "bg-fuchsia-500",
+                enunciadoText: "Reduzca la expresión:",
+                enunciadoLatex: String.raw`E = \frac{\sqrt[3]{x^2\sqrt[3]{x^2\sqrt[3]{x}}}}{\sqrt[3]{x^2\sqrt[3]{x^2}}}`,
+                steps: [
+                    {
+                        latex: String.raw`E = \frac{\sqrt[3]{x^2\sqrt[3]{x^2\sqrt[3]{x}}}}{\sqrt[3]{x^2\sqrt[3]{x^2}}}`,
+                        propertyText: "Expresión inicial",
+                        propertyLatex: String.raw`\text{Expresión Inicial}`,
+                        robotSpeech: "Tenemos fracciones con raíces anidadas. Empezaremos transformando las raíces más profundas."
+                    },
+                    {
+                        latex: String.raw`E = \frac{\sqrt[3]{x^2\sqrt[3]{x^{2 + 1/3}}}}{\sqrt[3]{x^{2 + 2/3}}}`,
+                        propertyText: "Raíz a exponente fraccionario",
+                        propertyLatex: String.raw`\sqrt[n]{x^m} = x^{m/n}`,
+                        robotSpeech: "Convertimos las raíces internas en exponentes fraccionarios y sumamos con las bases x."
+                    },
+                    {
+                        latex: String.raw`E = \frac{\sqrt[3]{x^2\sqrt[3]{x^{7/3}}}}{\sqrt[3]{x^{8/3}}}`,
+                        propertyText: "Suma de fracciones",
+                        propertyLatex: String.raw`\text{Suma de exponentes}`,
+                        robotSpeech: "Resolviendo las sumas de fracciones en los exponentes obtenemos siete tercios y ocho tercios."
+                    },
+                    {
+                        latex: String.raw`E = \frac{\sqrt[3]{x^2 \cdot x^{7/9}}}{x^{8/9}}`,
+                        propertyText: "Raíz sobre exponente",
+                        propertyLatex: String.raw`\sqrt[n]{x^m} = x^{m/n}`,
+                        robotSpeech: "La raíz cúbica divide a los exponentes fraccionarios internos entre tres."
+                    },
+                    {
+                        latex: String.raw`E = \frac{\sqrt[3]{x^{25/9}}}{x^{8/9}}`,
+                        propertyText: "Multiplicación de bases iguales",
+                        propertyLatex: String.raw`x^2 \cdot x^{7/9} = x^{25/9}`,
+                        robotSpeech: "En el numerador sumamos el exponente entero con la fracción."
+                    },
+                    {
+                        latex: String.raw`E = \frac{x^{25/27}}{x^{24/27}}`,
+                        propertyText: "Última raíz y homogeneización",
+                        propertyLatex: String.raw`\frac{8}{9} = \frac{24}{27}`,
+                        robotSpeech: "Aplicamos la última raíz dividiendo entre tres y homogeneizamos el denominador."
+                    },
+                    {
+                        latex: String.raw`E = x^{\frac{25 - 24}{27}} = x^{1/27} = \mathbf{\sqrt[27]{x}}`,
+                        propertyText: "División y resultado",
+                        propertyLatex: String.raw`\frac{a^m}{a^n} = a^{m-n}`,
+                        robotSpeech: "Restamos los exponentes y convertimos la fracción final de vuelta a raíz. ¡Completado!"
+                    }
+                ]
+            },
+            {
+                id: 9,
+                title: "Ejercicio 9",
+                subtitle: "Factores repetidos",
+                cardGradient: "from-orange-500/30 to-red-600/30 border-orange-400",
+                badgeColor: "bg-orange-500",
+                enunciadoText: "Efectúe:",
+                enunciadoLatex: String.raw`A = \frac{\overbrace{\sqrt[3]{x} \cdots \sqrt[3]{x}}^{30 \text{ factores}}}{\underbrace{\sqrt{x} \cdots \sqrt{x}}_{24 \text{ factores}}} \div \frac{x^{-5}}{x^{-3}}`,
+                steps: [
+                    {
+                        latex: String.raw`A = \frac{\overbrace{\sqrt[3]{x} \cdots \sqrt[3]{x}}^{30}}{\underbrace{\sqrt{x} \cdots \sqrt{x}}_{24}} \div \frac{x^{-5}}{x^{-3}}`,
+                        propertyText: "Expresión inicial",
+                        propertyLatex: String.raw`\text{Expresión Inicial}`,
+                        robotSpeech: "Tenemos factores repetidos, lo que significa que podemos expresarlos como una potencia."
+                    },
+                    {
+                        latex: String.raw`A = \frac{(\sqrt[3]{x})^{30}}{(\sqrt{x})^{24}} \div x^{-5 - (-3)}`,
+                        propertyText: "Definición de potencia y división",
+                        propertyLatex: String.raw`C \cdot C \dots C = C^n`,
+                        robotSpeech: "Agrupamos los factores repetidos en potencias y restamos los exponentes de la derecha."
+                    },
+                    {
+                        latex: String.raw`A = \frac{(x^{1/3})^{30}}{(x^{1/2})^{24}} \div x^{-2}`,
+                        propertyText: "Raíz a exponente",
+                        propertyLatex: String.raw`\sqrt[n]{x} = x^{1/n}`,
+                        robotSpeech: "Transformamos las raíces en exponentes fraccionarios para poder multiplicarlos."
+                    },
+                    {
+                        latex: String.raw`A = \frac{x^{30/3}}{x^{24/2}} \div x^{-2}`,
+                        propertyText: "Potencia de una potencia",
+                        propertyLatex: String.raw`(x^m)^n = x^{m \cdot n}`,
+                        robotSpeech: "Multiplicamos los exponentes fraccionarios por sus potencias externas."
+                    },
+                    {
+                        latex: String.raw`A = \frac{x^{10}}{x^{12}} \div x^{-2}`,
+                        propertyText: "Simplificación de fracciones",
+                        propertyLatex: String.raw`\text{División simple}`,
+                        robotSpeech: "Simplificamos las fracciones en los exponentes obteniendo números enteros."
+                    },
+                    {
+                        latex: String.raw`A = x^{10 - 12} \div x^{-2}`,
+                        propertyText: "División de bases iguales",
+                        propertyLatex: String.raw`\frac{x^m}{x^n} = x^{m-n}`,
+                        robotSpeech: "Dividimos los términos de la izquierda restando sus exponentes."
+                    },
+                    {
+                        latex: String.raw`A = x^{-2} \div x^{-2} = \mathbf{1}`,
+                        propertyText: "Términos idénticos",
+                        propertyLatex: String.raw`\frac{N}{N} = 1`,
+                        robotSpeech: "Dividir una expresión entre sí misma siempre da como resultado 1. ¡Excelente trabajo!"
+                    }
+                ]
+            }
+        ];
+
+        const MathDisplay = memo(({ latex, className = "" }) => {
+            const containerRef = useRef(null);
+            useEffect(() => {
+                if (containerRef.current && window.katex) {
+                    try {
+                        window.katex.render(latex, containerRef.current, {
+                            displayMode: true,
+                            throwOnError: false,
+                            strict: false,
+                            trust: true
+                        });
+                    } catch (e) {
+                        containerRef.current.innerText = latex;
+                    }
+                }
+            }, [latex]);
+            return <div ref={containerRef} className={className} />;
+        });
+
+        const MathInline = memo(({ latex }) => {
+            const containerRef = useRef(null);
+            useEffect(() => {
+                if (containerRef.current && window.katex) {
+                    try {
+                        window.katex.render(latex, containerRef.current, {
+                            displayMode: false,
+                            throwOnError: false,
+                            strict: false,
+                            trust: true
+                        });
+                    } catch (e) {
+                        containerRef.current.innerText = latex;
+                    }
+                }
+            }, [latex]);
+            return <span ref={containerRef} className="inline-block" />;
+        });
+
+        const FloatingBackground = memo(() => {
+            const symbols = ['√x', '∛a²', 'xⁿ', '+', '−', '=', '✨', '1/2', '🚀', '🧠', 'ⁿ√b'];
+            const elements = Array.from({ length: 25 }).map((_, i) => ({
+                id: i, symbol: symbols[i % symbols.length], left: `${(i * 4) % 100}%`,
+                animationDuration: `${12 + (i % 8) * 1.5}s`, animationDelay: `-${(i * 1.5) % 18}s`,
+                fontSize: `${1.2 + (i % 3) * 0.5}rem`, opacity: 0.10 + (i % 3) * 0.06
+            }));
+            return (
+                <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+                    {elements.map((el) => (
+                        <div key={el.id} className="absolute text-white font-black animate-floatUp select-none drop-shadow-lg" style={{ left: el.left, bottom: '-15%', fontSize: el.fontSize, opacity: el.opacity, animationDuration: el.animationDuration, animationDelay: el.animationDelay }}>
+                            {el.symbol}
+                        </div>
+                    ))}
+                </div>
+            );
+        });
+
+        const Confetti = memo(() => {
+            const colors = ['#fde047', '#60a5fa', '#f472b6', '#34d399', '#a78bfa', '#ff5722'];
+            const pieces = Array.from({ length: 80 }).map((_, i) => ({
+                id: i, left: `${50 + (Math.random() * 20 - 10)}%`, color: colors[Math.floor(Math.random() * colors.length)],
+                tx: `${(Math.random() - 0.5) * 600}px`, ty: `${(Math.random() - 1) * 550}px`, rot: `${Math.random() * 720}deg`, delay: `${Math.random() * 0.2}s`
+            }));
+            return (
+                <div className="absolute inset-0 pointer-events-none z-50 flex items-center justify-center overflow-hidden">
+                    {pieces.map((p) => (
+                        <div key={p.id} className="absolute w-4 h-4 rounded-full animate-confettiExplosion shadow-sm" style={{ backgroundColor: p.color, '--tx': p.tx, '--ty': p.ty, '--rot': p.rot, animationDelay: p.delay, left: p.left, top: '50%' }} />
+                    ))}
+                </div>
+            );
+        });
+
+        const GoldenStarsExplosion = memo(() => {
+            const stars = Array.from({ length: 18 }).map((_, i) => {
+                const angle = (i / 18) * Math.PI * 2; const distance = 80 + (i % 3) * 35;
+                return { id: i, tx: `${Math.cos(angle) * distance}px`, ty: `${Math.sin(angle) * distance}px`, rot: `${360 + i * 30}deg`, delay: `${(i % 3) * 0.04}s`, size: `${1.4 + (i % 3) * 0.5}rem`, sScale: 1.1 };
+            });
+            return (
+                <div className="absolute inset-0 pointer-events-none z-50 flex items-center justify-center overflow-visible">
+                    {stars.map((s) => (
+                        <div key={s.id} className="absolute animate-starRadialExplosion" style={{ '--tx': s.tx, '--ty': s.ty, '--rot': s.rot, '--s': s.sScale, animationDelay: s.delay, width: s.size, height: s.size }}>
+                            <svg viewBox="0 0 24 24" fill="#fbbf24" stroke="#f59e0b" strokeWidth="1" className="w-full h-full drop-shadow-[0_0_10px_rgba(251,191,36,0.9)]">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                            </svg>
+                        </div>
+                    ))}
+                </div>
+            );
+        });
+
+        const RobotAssistant = ({ step, maxSteps }) => {
+            const isFinalStep = step >= maxSteps;
+            const isThinking = step === maxSteps - 1;
+
+            const getContainerAnim = () => { if (isFinalStep) return 'animate-robotJump'; if (isThinking) return 'animate-robotThinkTilt'; return 'animate-robotFloat'; };
+            const getArmLAnim = () => { if (isFinalStep) return 'rotate-[150deg] animate-pulse'; if (step > 0) return 'animate-robotTalkArmL'; return 'rotate-45'; };
+            const getArmRAnim = () => { if (isFinalStep) return '-rotate-[150deg] animate-pulse'; if (step > 0) return 'animate-robotTalkArmR'; return '-rotate-45'; };
+            
+            const getEyes = () => {
+                if (isFinalStep) return <div className="w-full flex justify-between px-1.5"><div className="w-3.5 h-2 bg-emerald-400 rounded-t-full mt-1"></div><div className="w-3.5 h-2 bg-emerald-400 rounded-t-full mt-1"></div></div>;
+                if (step === 0) return <div className="w-full flex justify-between px-2"><div className="w-2.5 h-2.5 bg-cyan-400 rounded-full animate-pulse"></div><div className="w-2.5 h-2.5 bg-cyan-400 rounded-full animate-pulse"></div></div>;
+                return <div className="w-full flex justify-between px-1.5"><div className="w-3 h-3 bg-yellow-400 rounded-full animate-bounce"></div><div className="w-3 h-3 bg-yellow-400 rounded-full animate-bounce"></div></div>;
+            };
+            const getMouth = () => {
+                if (isFinalStep) return <div className="w-6 h-3.5 bg-rose-400 rounded-b-full mt-1.5"></div>;
+                if (step === 0) return <div className="w-4 h-1.5 bg-cyan-300 rounded-full mt-2"></div>;
+                return <div className="w-3.5 h-3.5 bg-rose-400 rounded-full mt-1 animate-ping"></div>;
+            };
+
+            return (
+                <div className={`relative flex flex-col items-center drop-shadow-lg select-none ${getContainerAnim()}`}>
+                    <div className="relative z-0 flex flex-col items-center translate-y-1">
+                        <div className={`w-3.5 h-3.5 rounded-full shadow-[0_0_10px_currentColor] z-10 transition-colors duration-300 ${isFinalStep ? 'text-emerald-400 bg-emerald-400' : 'text-yellow-400 bg-yellow-400 animate-pulse'}`}></div>
+                        <div className="w-1.5 h-3.5 bg-slate-300"></div>
+                    </div>
+                    <div className="relative z-10 w-14 h-14 sm:w-18 sm:h-18 bg-gradient-to-br from-white to-slate-200 rounded-[1.2rem] border-[3px] border-indigo-400 shadow-xl flex flex-col items-center justify-center p-1">
+                        <div className="w-full h-full bg-slate-900 rounded-lg flex flex-col items-center justify-center p-1 shadow-inner border-2 border-indigo-500">
+                            {getEyes()} {getMouth()}
+                        </div>
+                    </div>
+                    <div className={`absolute top-1/2 -left-2 w-3 h-4 bg-slate-200 border-[2.5px] border-indigo-400 rounded-full z-0 origin-top ${getArmLAnim()}`}></div>
+                    <div className={`absolute top-1/2 -right-2 w-3 h-4 bg-slate-200 border-[2.5px] border-indigo-400 rounded-full z-0 origin-top ${getArmRAnim()}`}></div>
+                </div>
+            );
+        };
+
+        function App() {
+            const [view, setView] = useState('home'); // 'home' | 'lab'
+            const [exIdx, setExIdx] = useState(0);
+            const [step, setStep] = useState(0);
+            const [isMuted, setIsMuted] = useState(false);
+
+            const currentExercise = RADICAL_EXERCISES[exIdx];
+            const maxSteps = currentExercise.steps.length - 1;
+            const currentStepData = currentExercise.steps[step];
+
+            const handleInteraction = () => AudioController.init();
+
+            const startExercise = (index) => {
+                handleInteraction();
+                AudioController.play('swoosh');
+                setExIdx(index);
+                setStep(0);
+                setView('lab');
+            };
+
+            const nextStep = () => {
+                handleInteraction();
+                if (step < maxSteps) {
+                    const next = step + 1;
+                    setStep(next);
+                    if (next === maxSteps) {
+                        AudioController.play('success');
+                    } else {
+                        AudioController.play('pop');
+                    }
+                } else {
+                    if (exIdx < RADICAL_EXERCISES.length - 1) {
+                        AudioController.play('swoosh');
+                        setExIdx(exIdx + 1);
+                        setStep(0);
+                    } else {
+                        AudioController.play('swoosh');
+                        setView('home');
+                    }
+                }
+            };
+
+            const prevStep = () => {
+                handleInteraction();
+                if (step > 0) {
+                    setStep(step - 1);
+                    AudioController.play('pop-reverse');
+                }
+            };
+
+            const toggleMute = () => {
+                handleInteraction();
+                setIsMuted(AudioController.toggleMute());
+            };
+
+            if (view === 'home') {
+                return (
+                    <div className="w-screen h-[100dvh] bg-gradient-to-br from-[#4f46e5] via-[#7c3aed] to-[#db2777] flex flex-col items-center justify-between p-3 sm:p-6 relative font-fun overflow-hidden">
+                        <FloatingBackground />
+                        
+                        <div className="w-full max-w-5xl z-20 flex items-center justify-between px-2">
+                            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-2xl border-2 border-yellow-300 bg-white/15 backdrop-blur-md text-yellow-300 font-black tracking-wider uppercase shadow-md text-xs sm:text-sm">
+                                <Rocket className="w-4 h-4 text-yellow-300" /> TuProfe20 Lab
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button onClick={toggleMute} className="p-2 rounded-2xl bg-white/20 border-2 border-white/30 backdrop-blur-md text-white hover:bg-white/30 transition-all">
+                                    {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="relative z-10 text-center w-full max-w-5xl my-auto py-1 sm:py-2 flex flex-col h-[85vh]">
+                            <div className="shrink-0">
+                                <div className="inline-block bg-yellow-400 text-slate-900 font-black text-[10px] sm:text-sm px-3 py-1 rounded-full uppercase tracking-widest mb-1 sm:mb-2 shadow-md">
+                                    Álgebra Interactiva • Paso a Paso
+                                </div>
+                                
+                                <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-white mb-1 sm:mb-2 drop-shadow-[0_4px_0_rgba(0,0,0,0.3)] tracking-tight uppercase leading-none">
+                                    Ejercicios con <span className="text-yellow-300 underline decoration-wavy decoration-pink-400">Radicales</span>
+                                </h1>
+                                
+                                <p className="text-xs sm:text-base lg:text-lg text-purple-100 mb-2 sm:mb-4 font-bold max-w-2xl mx-auto px-2 leading-tight">
+                                    Domina cada propiedad matemática con explicaciones rigurosas y resolución a tu propio ritmo ⚡🧠
+                                </p>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto scrollbar-hide w-full mb-3 px-1">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 max-w-5xl mx-auto pb-2">
+                                    {RADICAL_EXERCISES.map((ex, idx) => (
+                                        <button
+                                            key={ex.id}
+                                            onClick={() => startExercise(idx)}
+                                            className={`group text-left p-2.5 rounded-2xl bg-gradient-to-br ${ex.cardGradient} border-2 backdrop-blur-xl hover:scale-[1.03] hover:shadow-xl transition-all flex flex-col justify-between relative overflow-hidden shadow-md min-h-[6rem]`}
+                                        >
+                                            <div className="flex items-center justify-between mb-1 gap-1">
+                                                <span className={`${ex.badgeColor} text-white text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider shadow truncate`}>
+                                                    {ex.title}
+                                                </span>
+                                                <span className="bg-white/20 text-white text-[8px] font-black px-1.5 py-0.5 rounded-md whitespace-nowrap">
+                                                    {ex.steps.length - 1} pasos
+                                                </span>
+                                            </div>
+                                            <div className="my-1 bg-white/95 rounded-lg p-1 text-slate-900 shadow-inner overflow-hidden flex items-center justify-center min-h-[2.5rem] border border-white/60">
+                                                <div className="math-card w-full text-center scale-[0.8] origin-center">
+                                                    <MathDisplay latex={ex.steps[0].latex} />
+                                                </div>
+                                            </div>
+                                            <div className="text-white text-[9px] sm:text-[11px] font-black flex items-center justify-between mt-1">
+                                                <span className="truncate pr-1 leading-tight">{ex.subtitle}</span>
+                                                <span className="bg-yellow-300 text-slate-900 px-1 py-0.5 rounded-md text-[8px] font-black group-hover:translate-x-0.5 transition-transform shrink-0">
+                                                    ➔
+                                                </span>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="shrink-0 mt-auto">
+                                <button
+                                    onClick={() => startExercise(0)}
+                                    className="bg-gradient-to-r from-yellow-300 via-amber-400 to-orange-500 text-slate-900 border-b-[4px] border-amber-700 font-black text-sm sm:text-lg py-2.5 px-6 rounded-full shadow-2xl hover:brightness-110 active:border-b-0 active:translate-y-[4px] transition-all inline-flex items-center gap-2"
+                                >
+                                    <Rocket className="w-4 h-4 sm:w-5 sm:h-5" /> ¡Comenzar el Recorrido!
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="w-full text-center text-white/80 font-bold text-xs z-10 pb-1">
+                            Adaptado para Celular, Tablet y Computadora • TuProfe20
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="w-screen h-[100dvh] bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 text-slate-800 flex flex-col p-2 sm:p-4 relative font-fun overflow-hidden">
+                    <FloatingBackground />
+                    {step === maxSteps && <Confetti />}
+
+                    <div className="shrink-0 relative z-10 w-full max-w-5xl mx-auto flex justify-between items-center mb-2 px-1">
+                        <button onClick={() => { AudioController.play('swoosh'); setView('home'); }} className="flex items-center justify-center px-3 py-1.5 sm:px-4 sm:py-2 rounded-2xl bg-white/20 border-2 border-white/40 backdrop-blur-md text-white font-black hover:bg-white/30 transition-all shadow-md active:scale-95 text-xs sm:text-sm">
+                            <Home className="w-4 h-4 sm:mr-1.5" />
+                            <span className="hidden sm:inline">Portada</span>
+                        </button>
+
+                        <div className="flex items-center gap-1 bg-black/25 p-1 rounded-2xl border border-white/25 backdrop-blur-md">
+                            {RADICAL_EXERCISES.map((ex, i) => (
+                                <button
+                                    key={ex.id}
+                                    onClick={() => startExercise(i)}
+                                    className={`w-7 h-7 sm:w-9 sm:h-9 rounded-xl font-black text-xs sm:text-sm transition-all ${exIdx === i ? 'bg-yellow-400 text-slate-900 scale-110 shadow-md' : 'text-white hover:bg-white/20'}`}
+                                >
+                                    {ex.id}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <button onClick={toggleMute} className="p-2 rounded-2xl bg-white/20 border-2 border-white/40 text-white hover:bg-white/30 transition-all">
+                                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 min-h-0 relative z-10 w-full max-w-5xl mx-auto bg-white rounded-[2rem] border-[4px] sm:border-[5px] border-white shadow-[0_20px_40px_rgba(0,0,0,0.35)] flex flex-col overflow-hidden">
+                        
+                        <div className="shrink-0 bg-slate-900 border-b-[4px] border-indigo-500 px-4 py-2.5 sm:py-3.5 flex flex-col items-center justify-center relative shadow-md">
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className="bg-yellow-400 text-slate-900 font-black text-[11px] sm:text-xs px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow">
+                                    {currentExercise.title} de {RADICAL_EXERCISES.length}
+                                </span>
+                                <span className="text-purple-200 font-bold text-xs">
+                                    • {currentExercise.subtitle}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-center gap-2 text-white font-black text-sm sm:text-lg">
+                                <span>{currentExercise.enunciadoText}</span>
+                                <div className="math-enunciado inline-block">
+                                    <MathInline latex={currentExercise.enunciadoLatex} />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 flex flex-col items-center justify-center p-3 sm:p-5 relative bg-slate-50 overflow-hidden w-full">
+                            <div className="absolute inset-0 opacity-25 bg-[linear-gradient(to_right,#cbd5e1_1px,transparent_1px),linear-gradient(to_bottom,#cbd5e1_1px,transparent_1px)] [background-size:28px_28px] pointer-events-none"></div>
+
+                            {step === maxSteps && <GoldenStarsExplosion />}
+
+                            <div key={`badge-${exIdx}-${step}`} className="z-20 mb-2 sm:mb-4 animate-jellyPop text-center">
+                                <span className={`inline-flex items-center gap-2 px-4 py-1 sm:px-5 sm:py-1.5 rounded-full font-black text-xs sm:text-sm lg:text-base shadow-md border-2 ${step === maxSteps ? 'bg-amber-500 text-slate-900 border-yellow-200' : 'bg-gradient-to-r from-pink-600 to-purple-600 text-white border-pink-300'}`}>
+                                    <Sparkles className="w-4 h-4" /> 
+                                    <span>{currentStepData.propertyText}:</span>
+                                    <MathInline latex={currentStepData.propertyLatex} />
+                                </span>
+                            </div>
+
+                            <div key={`current-${exIdx}-${step}`} className="w-full flex items-center justify-center z-10 animate-jellyPop px-2">
+                                <div className={`transition-all px-4 py-2 sm:px-6 sm:py-4 max-w-full overflow-hidden text-center ${step === maxSteps ? 'bg-[#fde047] border-[4px] sm:border-[5px] border-[#eab308] rounded-[1.8rem] shadow-[0_12px_30px_rgba(234,179,8,0.45)] math-final' : 'bg-transparent math-current'}`}>
+                                    <MathDisplay latex={currentStepData.latex} />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="shrink-0 bg-white w-full px-3 py-2 sm:px-5 sm:py-3 flex items-center gap-3 border-t-[3px] border-indigo-100 z-10">
+                            <div className="shrink-0">
+                                <RobotAssistant step={step} maxSteps={maxSteps} />
+                            </div>
+                            <div className="flex-1 text-xs sm:text-base lg:text-lg font-bold text-slate-800 leading-snug bg-indigo-50/90 p-3 sm:p-3.5 rounded-2xl border-2 border-indigo-200 shadow-inner min-h-[3.8rem] flex items-center overflow-hidden">
+                                <div key={`speech-${exIdx}-${step}`} className="animate-slideInRight w-full">
+                                    {currentStepData.robotSpeech}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="shrink-0 bg-gradient-to-b from-[#eadef7] to-[#d6c1f0] p-2.5 sm:p-3.5 w-full flex flex-col items-center border-t-[3px] border-white z-10">
+                            <div className="flex justify-center items-stretch w-full max-w-3xl gap-2 h-11 sm:h-13">
+                                <button
+                                    onClick={prevStep}
+                                    disabled={step === 0}
+                                    className="flex-[0.7] bg-[#d8b4fe] border-b-[4px] border-[#a855f7] text-[#581c87] rounded-2xl font-black text-xs sm:text-base flex items-center justify-center gap-1 active:border-b-0 active:translate-y-[4px] disabled:opacity-40 transition-all hover:bg-[#e9d5ff]"
+                                >
+                                    <ChevronLeft className="w-5 h-5 stroke-[3px]" />
+                                    <span>Atrás</span>
+                                </button>
+
+                                <div className="bg-[#a855f7] text-white font-black px-3 sm:px-5 text-xs sm:text-base flex items-center justify-center rounded-2xl border-b-[4px] border-[#7e22ce] shadow-inner whitespace-nowrap">
+                                    Paso {step}/{maxSteps}
+                                </div>
+
+                                <button
+                                    onClick={nextStep}
+                                    className={`flex-[1.8] border-b-[4px] text-white rounded-2xl font-black text-sm sm:text-lg flex items-center justify-center gap-1.5 active:border-b-0 active:translate-y-[4px] transition-all shadow-md hover:brightness-110 ${
+                                        step === maxSteps
+                                            ? 'bg-gradient-to-r from-emerald-500 to-teal-600 border-emerald-800 animate-pulse'
+                                            : 'bg-gradient-to-r from-[#f59e0b] to-[#f97316] border-[#c2410c]'
+                                    }`}
+                                >
+                                    <span>
+                                        {step < maxSteps
+                                            ? '¡Siguiente Paso!'
+                                            : exIdx < RADICAL_EXERCISES.length - 1
+                                            ? `Ir al Ejercicio ${exIdx + 2}`
+                                            : '¡Volver a la Portada!'}
+                                    </span>
+                                    <ChevronRight className="w-5 h-5 stroke-[3px]" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
